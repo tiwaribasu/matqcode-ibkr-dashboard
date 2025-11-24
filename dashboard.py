@@ -230,10 +230,3 @@ with c2:
         color_discrete_sequence=px.colors.qualitative.Vivid
     )
     st.plotly_chart(fig2, use_container_width=True)
-
-# ===================================================================
-# ✅ NO JAVASCRIPT RELOAD NEEDED!
-# Streamlit auto-refreshes data every REFRESH_INTERVAL_SEC seconds
-# ===================================================================
-st.divider()
-st.caption(f"🔁 Data refreshes automatically every {REFRESH_INTERVAL_SEC} seconds")
