@@ -21,7 +21,7 @@ except KeyError:
     st.stop()
 
 st.set_page_config(
-    page_title="Portfolio Dashboard",
+    page_title="MATQCODE IBKR Dashboard",
     page_icon="💼",
     layout="wide"
 )
@@ -133,7 +133,7 @@ st.markdown(
     '🏦 Portfolio Dashboard</div>',
     unsafe_allow_html=True
 )
-st.caption("Live P&L • Long/Short aware • Strategy-based view")
+# st.caption("Live P&L • Long/Short aware • Strategy-based view")
 
 # Metrics
 col1, col2, col3, col4 = st.columns(4)
@@ -152,14 +152,14 @@ with col3:
 with col4:
     st.metric("Positions", len(df))
 
-st.caption(f"✅ Data refreshed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} • Refresh every {REFRESH_INTERVAL_SEC} sec")
+st.caption(f"Last Updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.divider()
 
 # ===================================================================
 # 📋 Position Table — Color-Coded, No Blanks
 # ===================================================================
-st.subheader("📋 Positions (Sorted by |P&L|)")
+st.subheader("📋 Open Positions")
 
 display_df = df[[
     'Strategy Name', 'Account', 'Symbol', 'SecType', 'Long/Short',
