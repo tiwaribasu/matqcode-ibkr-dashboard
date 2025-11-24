@@ -25,7 +25,7 @@ except KeyError:
     st.stop()
 
 st.set_page_config(
-    page_title="IBKR Portfolio Dashboard",
+    page_title="MATQCODE-IBKR Dashboard",
     page_icon="📈",
     layout="wide"
 )
