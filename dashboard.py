@@ -10,6 +10,7 @@ from datetime import datetime
 # ===================================================================
 CURRENCY_SYMBOL = "$"
 REFRESH_INTERVAL_SEC = 30  # Data auto-refreshes every 30 sec (no page reload needed)
+LEVERAGE = 5
 
 # ===================================================================
 # 🔐 Load Google Sheet URL from Streamlit Secrets
@@ -145,12 +146,14 @@ st.markdown(
 # ===================================================================
 # 📊 Metrics
 # ===================================================================
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Total Exposure", format_currency(total_exposure))
+    st.metric("Total Exposure", format_currency(total_exposure/LEVERAGE))
 with col2:
-    st.metric("Total Cost", format_currency(total_cost))
+    st.metric("Leverage", LEVERAGE)
 with col3:
+    st.metric("Total Cost", format_currency(total_cost))
+with col4:
     st.metric("Positions", len(df))
 
 st.caption(f"Live data • Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
