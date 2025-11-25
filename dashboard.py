@@ -153,7 +153,7 @@ with col2:
 with col3:
     st.metric("Positions", len(df))
 
-st.caption(f"Live data • Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.divider()
 
