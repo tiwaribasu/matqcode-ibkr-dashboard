@@ -161,7 +161,7 @@ with col1:
     st.markdown(
         f"""
         <div style="text-align: center;">
-            <div style="font-size: 0.95rem; font-weight: 600; color: #1f77b4; margin-bottom: 0.2rem;">Total Long Volume</div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: #1f77b4; margin-bottom: 0.2rem;">Total Long Exposure</div>
             <div style="font-size: 1.75rem; font-weight: 700; color: #1f77b4;">{format_currency(total_long_volume)}</div>
         </div>
         """, 
@@ -172,7 +172,7 @@ with col2:
     st.markdown(
         f"""
         <div style="text-align: center;">
-            <div style="font-size: 0.95rem; font-weight: 600; color: #ff4b4b; margin-bottom: 0.2rem;">Total Short Volume</div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: #ff4b4b; margin-bottom: 0.2rem;">Total Short Exposure</div>
             <div style="font-size: 1.75rem; font-weight: 700; color: #ff4b4b;">{format_currency(total_short_volume)}</div>
         </div>
         """, 
@@ -183,7 +183,7 @@ with col3:
     st.markdown(
         f"""
         <div style="text-align: center;">
-            <div style="font-size: 0.95rem; font-weight: 600; color: #000000; margin-bottom: 0.2rem;">Total Volume</div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: #000000; margin-bottom: 0.2rem;">Total Exposure</div>
             <div style="font-size: 1.75rem; font-weight: 700; color: #000000;">{format_currency(total_volume)}</div>
         </div>
         """, 
