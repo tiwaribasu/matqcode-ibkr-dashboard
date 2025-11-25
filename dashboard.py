@@ -120,11 +120,14 @@ df['UnrealizedPnL%'] = np.where(
 df['Long/Short'] = df['Position'].apply(lambda x: 'Long' if x > 0 else 'Short')
 df['MarketValue'] = df['Position'] * df['MarketPrice']
 
-# Totals
+# Calculate volume metrics
+total_long_volume = df[df['Long/Short'] == 'Long']['MarketValue'].abs().sum()
+total_short_volume = df[df['Long/Short'] == 'Short']['MarketValue'].abs().sum()
+total_volume = total_long_volume + total_short_volume
+
+# Totals for P&L
 total_pnl = df['UnrealizedPnL'].sum()
-total_exposure = df['MarketValue'].abs().sum()
-total_cost = df['CostBasis'].sum()
-total_pnl_pct = (total_pnl / total_cost * 100) if total_cost != 0 else 0
+total_pnl_pct = (total_pnl / df['CostBasis'].sum() * 100) if df['CostBasis'].sum() != 0 else 0
 
 df['Account'] = df['Account'].apply(mask_account)
 df = df.iloc[df['UnrealizedPnL'].abs().argsort()[::-1]].reset_index(drop=True)
@@ -150,15 +153,57 @@ st.markdown(
 )
 
 # ===================================================================
-# 📊 Metrics
+# 📊 NEW METRICS: Volume Breakdown
 # ===================================================================
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
+
 with col1:
-    st.metric("Total Exposure", format_currency(total_exposure))
+    st.metric(
+        "Total Long Volume", 
+        format_currency(total_long_volume),
+        delta=None,
+        delta_color="normal"
+    )
+
 with col2:
-    st.metric("Total Cost", format_currency(total_cost))
+    st.metric(
+        "Total Short Volume", 
+        format_currency(total_short_volume),
+        delta=None,
+        delta_color="normal"
+    )
+
 with col3:
+    st.metric(
+        "Total Volume", 
+        format_currency(total_volume),
+        delta=None,
+        delta_color="normal"
+    )
+
+with col4:
     st.metric("Positions", len(df))
+
+# ===================================================================
+# 🎨 CUSTOM CSS FOR METRIC COLORS
+# ===================================================================
+st.markdown("""
+<style>
+    /* Blue for Long Volume */
+    [data-testid="stMetricValue"]:first-child {
+        color: #1f77b4 !important;
+    }
+    /* Red for Short Volume */
+    [data-testid="stMetricValue"]:nth-child(2) {
+        color: #ff4b4b !important;
+    }
+    /* Black for Total Volume */
+    [data-testid="stMetricValue"]:nth-child(3) {
+        color: #000000 !important;
+    }
+    /* Keep Positions as default color */
+</style>
+""", unsafe_allow_html=True)
 
 st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
