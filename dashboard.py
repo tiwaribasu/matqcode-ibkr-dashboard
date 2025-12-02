@@ -242,8 +242,8 @@ def create_dashboard_tab(df, region_name, currency_symbol="$", last_refresh_time
     st.caption(f"Last updated: {get_time_with_timezone(region_name.split()[0])}")
     
     # Show manual refresh time if available
-    if last_refresh_time:
-        st.caption(f"Data refresh: {last_refresh_time}")
+    # if last_refresh_time:
+    #     st.caption(f"Data refresh: {last_refresh_time}")
     
     st.divider()
     
