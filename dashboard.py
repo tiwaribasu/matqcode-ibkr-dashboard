@@ -409,11 +409,11 @@ if 'last_data_india' not in st.session_state:
 col1, col2, col3 = st.columns([3, 2, 1])
 # with col1:
 #     st.title("BITQCODE Dashboard")
-with col3:
-    if st.button("🔄 Refresh Now", type="primary"):
-        st.session_state.refresh_counter += 1
-        st.session_state.last_refresh_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        st.rerun()
+# with col3:
+#     if st.button("🔄 Refresh Now", type="primary"):
+#         st.session_state.refresh_counter += 1
+#         st.session_state.last_refresh_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#         st.rerun()
 
 # Check if we need to refresh based on interval
 current_time = datetime.now()
