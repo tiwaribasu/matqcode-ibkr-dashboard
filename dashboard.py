@@ -504,12 +504,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Show refresh status
-st.markdown(f"""
-<div class="refresh-indicator">
-    🔄 Auto-refresh every {REFRESH_INTERVAL_SEC} seconds | Last refresh: {st.session_state.last_refresh_time}
-</div>
-""", unsafe_allow_html=True)
+# # Show refresh status
+# st.markdown(f"""
+# <div class="refresh-indicator">
+#     🔄 Auto-refresh every {REFRESH_INTERVAL_SEC} seconds | Last refresh: {st.session_state.last_refresh_time}
+# </div>
+# """, unsafe_allow_html=True)
 
 # ===================================================================
 # 📊 Create Tabs with Cleaner Layout
