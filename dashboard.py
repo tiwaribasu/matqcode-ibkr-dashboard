@@ -406,7 +406,7 @@ if 'last_data_india' not in st.session_state:
     st.session_state.last_data_india = None
 
 # Create a refresh button at the top
-col1, col2, col3 = st.columns([3, 2, 1])
+# col1, col2, col3 = st.columns([3, 2, 1])
 # with col1:
 #     st.title("BITQCODE Dashboard")
 # with col3:
