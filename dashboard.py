@@ -377,18 +377,12 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
 # ===================================================================
 
 # Load data for both sheets
-# Note: You need to know the gid (sheet ID) for each sheet
-# Default: gid=0 for first sheet, gid=123456 for second sheet, etc.
-# You can find the gid in the Google Sheets URL when you click on a sheet tab
-
-df_global_raw = load_sheet_data(sheet_gid="5320120")  # First sheet (GLOBAL)
-df_india_raw = load_sheet_data(sheet_gid="649765105")  # Second sheet (INDIA) - Replace with actual gid
+df_global_raw = load_sheet_data(sheet_gid="5320120")  # GLOBAL sheet
+df_india_raw = load_sheet_data(sheet_gid="649765105")  # INDIA sheet
 
 # If the above doesn't work with gid, let's try a different approach
 if df_global_raw.empty or df_india_raw.empty:
     # Alternative: Try loading all sheets and separating by region column
-    st.info("Trying alternative loading method...")
-    
     @st.cache_data(ttl=REFRESH_INTERVAL_SEC)
     def load_all_data():
         try:
@@ -415,13 +409,60 @@ if df_global_raw.empty or df_india_raw.empty:
 df_global = process_data(df_global_raw, "GLOBAL", "$")
 df_india = process_data(df_india_raw, "INDIA", "₹")
 
-# Create tabs
-tab1, tab2 = st.tabs(["🌍 GLOBAL", "🇮🇳 INDIA"])
+# ===================================================================
+# 🎨 CSS for Bigger Tabs
+# ===================================================================
+st.markdown("""
+<style>
+    /* Make tabs larger and more prominent */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+        padding-top: 1rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        font-size: 18px;
+        font-weight: 600;
+        padding: 10px 24px;
+        border-radius: 8px 8px 0 0;
+        background-color: #f0f2f6;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: white;
+        border-bottom: 3px solid #FF4B4B;
+    }
+    
+    /* Remove default Streamlit tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    /* Make the tab content area cleaner */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-top: 1rem;
+    }
+    
+    /* Remove extra spacing in main container */
+    .main .block-container {
+        padding-top: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ===================================================================
+# 📊 Create Tabs with Cleaner Layout
+# ===================================================================
+tab1, tab2 = st.tabs([
+    "🌍 **GLOBAL**", 
+    "🇮🇳 **INDIA**"
+])
 
 with tab1:
-    st.header("🌍 GLOBAL Portfolio Dashboard")
+    # Removed the big header - just show the dashboard directly
     create_dashboard_tab(df_global, "GLOBAL", "$")
 
 with tab2:
-    st.header("🇮🇳 INDIA Portfolio Dashboard")
+    # Removed the big header - just show the dashboard directly
     create_dashboard_tab(df_india, "INDIA", "₹")
