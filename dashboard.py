@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import numpy as np
-from datetime import datetime
+from datetime import datetime, date
 import pytz
 
 # ===================================================================
@@ -84,6 +85,44 @@ def load_sheet_data(sheet_gid="0"):
     except Exception as e:
         st.error(f"❌ Failed to load sheet {sheet_gid}: {str(e)[:150]}...")
         return pd.DataFrame()
+
+@st.cache_data(ttl=REFRESH_INTERVAL_SEC)
+def process_live_pnl_data(df_raw):
+    """Process Live PnL data - filter for today's date only"""
+    if df_raw.empty:
+        return pd.DataFrame()
+    
+    # Clean column names
+    df = df_raw.copy()
+    df.columns = df.columns.str.strip()
+    
+    # Check for required columns
+    required_cols = ['DateTime', 'Total PnL']
+    if not all(col in df.columns for col in required_cols):
+        return pd.DataFrame()
+    
+    # Convert DateTime to datetime and Total PnL to numeric
+    df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
+    df['Total PnL'] = pd.to_numeric(df['Total PnL'], errors='coerce')
+    
+    # Drop rows with invalid dates or PnL
+    df = df.dropna(subset=['DateTime', 'Total PnL'])
+    
+    if df.empty:
+        return df
+    
+    # Get today's date in IST (Asia/Kolkata)
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    today_ist = datetime.now(ist_tz).date()
+    
+    # Filter for today's data only (based on date part, ignoring time)
+    df['Date'] = df['DateTime'].dt.date
+    df_today = df[df['Date'] == today_ist].copy()
+    
+    # Sort by DateTime
+    df_today = df_today.sort_values('DateTime')
+    
+    return df_today
 
 @st.cache_data(ttl=REFRESH_INTERVAL_SEC)
 def process_global_data(df_raw):
@@ -545,7 +584,7 @@ def create_global_dashboard(df):
         )
         st.plotly_chart(fig4, use_container_width=True)
 
-def create_india_dashboard(data_dict):
+def create_india_dashboard(data_dict, live_pnl_df):
     """Create INDIA dashboard with new format"""
     
     open_df = data_dict['open_positions']
@@ -664,6 +703,142 @@ def create_india_dashboard(data_dict):
     
     # Show appropriate timezone
     st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
+    
+    # ===================================================================
+    # 📈 LIVE P&L CHART (Today's P&L)
+    # ===================================================================
+    if not live_pnl_df.empty:
+        st.divider()
+        st.subheader("📈 Today's Live P&L Trend")
+        
+        # Get today's date for display
+        ist_tz = pytz.timezone('Asia/Kolkata')
+        today_date = datetime.now(ist_tz).strftime('%Y-%m-%d')
+        
+        # Calculate stats for display
+        if len(live_pnl_df) > 0:
+            latest_pnl = live_pnl_df['Total PnL'].iloc[-1]
+            highest_pnl = live_pnl_df['Total PnL'].max()
+            lowest_pnl = live_pnl_df['Total PnL'].min()
+            start_pnl = live_pnl_df['Total PnL'].iloc[0] if len(live_pnl_df) > 0 else 0
+            current_change = latest_pnl - start_pnl
+            
+            # Create metrics row
+            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+            
+            with metric_col1:
+                current_color = "green" if latest_pnl >= 0 else "red"
+                st.metric(
+                    label="Current P&L",
+                    value=format_inr(latest_pnl),
+                    delta=format_inr(current_change)
+                )
+            
+            with metric_col2:
+                st.metric(
+                    label="Today's High",
+                    value=format_inr(highest_pnl),
+                    delta=None
+                )
+            
+            with metric_col3:
+                st.metric(
+                    label="Today's Low",
+                    value=format_inr(lowest_pnl),
+                    delta=None
+                )
+            
+            with metric_col4:
+                data_points = len(live_pnl_df)
+                st.metric(
+                    label="Data Points",
+                    value=f"{data_points}",
+                    delta=None
+                )
+        
+        # Create professional line chart for Live P&L
+        fig = go.Figure()
+        
+        # Add the main line
+        fig.add_trace(go.Scatter(
+            x=live_pnl_df['DateTime'],
+            y=live_pnl_df['Total PnL'],
+            mode='lines+markers',
+            name='Live P&L',
+            line=dict(color='#00D4AA', width=3),
+            marker=dict(size=6, color='#00D4AA'),
+            hovertemplate='<b>Time:</b> %{x|%H:%M:%S}<br><b>P&L:</b> ₹%{y:,.2f}<extra></extra>'
+        ))
+        
+        # Add zero line reference
+        fig.add_hline(
+            y=0,
+            line_dash="dash",
+            line_color="gray",
+            line_width=1,
+            opacity=0.5
+        )
+        
+        # Add fill for positive/negative areas
+        fig.add_trace(go.Scatter(
+            x=live_pnl_df['DateTime'],
+            y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] >= 0),
+            mode='none',
+            fill='tozeroy',
+            fillcolor='rgba(0, 212, 170, 0.2)',
+            name='Positive',
+            showlegend=False
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=live_pnl_df['DateTime'],
+            y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] < 0),
+            mode='none',
+            fill='tozeroy',
+            fillcolor='rgba(255, 75, 75, 0.2)',
+            name='Negative',
+            showlegend=False
+        ))
+        
+        # Update layout for professional look
+        fig.update_layout(
+            height=400,
+            title=f"Live P&L Trend ({today_date})",
+            title_font=dict(size=20, color='#333'),
+            xaxis_title="Time (IST)",
+            yaxis_title="P&L (₹)",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Arial, sans-serif", size=12, color="#333"),
+            hovermode='x unified',
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                tickformat='%H:%M',
+                title_font=dict(size=14)
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                tickprefix='₹',
+                title_font=dict(size=14)
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show data summary
+        if len(live_pnl_df) > 1:
+            time_range = live_pnl_df['DateTime'].iloc[-1] - live_pnl_df['DateTime'].iloc[0]
+            avg_interval = time_range / (len(live_pnl_df) - 1) if len(live_pnl_df) > 1 else pd.Timedelta(0)
+            st.caption(f"📊 Data from {live_pnl_df['DateTime'].iloc[0].strftime('%H:%M:%S')} to {live_pnl_df['DateTime'].iloc[-1].strftime('%H:%M:%S')} | Average interval: {avg_interval.seconds // 60} min {avg_interval.seconds % 60} sec")
     
     # ===================================================================
     # 📋 OPEN POSITIONS
@@ -838,12 +1013,12 @@ def create_india_dashboard(data_dict):
         st.markdown(html_table_closed, unsafe_allow_html=True)
     
     # ===================================================================
-    # 📈 CHARTS FOR INDIA
+    # 📈 OTHER CHARTS FOR INDIA
     # ===================================================================
-    st.divider()
-    st.subheader("📊 Performance Analysis")
-    
     if not open_df.empty or not closed_df.empty:
+        st.divider()
+        st.subheader("📊 Performance Analysis")
+        
         chart_col1, chart_col2 = st.columns(2)
         
         with chart_col1:
@@ -904,13 +1079,15 @@ def create_india_dashboard(data_dict):
 # 🏠 MAIN APP - SIMPLE AND CLEAN
 # ===================================================================
 
-# Load data for both sheets using caching with TTL
+# Load data for all sheets using caching with TTL
 df_global_raw = load_sheet_data(sheet_gid="5320120")  # GLOBAL sheet
 df_india_raw = load_sheet_data(sheet_gid="649765105")  # INDIA sheet
+df_live_pnl_raw = load_sheet_data(sheet_gid="1065660372")  # LIVE PnL sheet
 
 # Process data
 df_global = process_global_data(df_global_raw)
 india_data = process_india_data(df_india_raw)
+live_pnl_data = process_live_pnl_data(df_live_pnl_raw)
 
 # ===================================================================
 # 🎨 CSS for Bigger Tabs
@@ -966,4 +1143,4 @@ with tab1:
     create_global_dashboard(df_global)
 
 with tab2:
-    create_india_dashboard(india_data)
+    create_india_dashboard(india_data, live_pnl_data)
