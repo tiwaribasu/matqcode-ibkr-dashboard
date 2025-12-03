@@ -38,6 +38,12 @@ def format_currency(val, currency_symbol="$"):
         return f"{currency_symbol}0.00"
     return f"{currency_symbol}{val:,.2f}"
 
+def format_inr(val):
+    """Format Indian Rupees"""
+    if pd.isna(val) or val == 0:
+        return "₹0.00"
+    return f"₹{val:,.2f}"
+
 def format_percent(val):
     if pd.isna(val):
         return "—"
@@ -80,8 +86,8 @@ def load_sheet_data(sheet_gid="0"):
         return pd.DataFrame()
 
 @st.cache_data(ttl=REFRESH_INTERVAL_SEC)
-def process_data(df_raw, region_name, currency_symbol="$"):
-    """Process data with caching"""
+def process_global_data(df_raw):
+    """Process GLOBAL data with caching"""
     if df_raw.empty:
         return pd.DataFrame()
     
@@ -149,11 +155,114 @@ def process_data(df_raw, region_name, currency_symbol="$"):
     
     return df
 
-def create_dashboard_tab(df, region_name, currency_symbol="$"):
-    """Create dashboard for a specific region"""
+@st.cache_data(ttl=REFRESH_INTERVAL_SEC)
+def process_india_data(df_raw):
+    """Process INDIA data with the new format"""
+    if df_raw.empty:
+        return {
+            'open_positions': pd.DataFrame(),
+            'closed_positions': pd.DataFrame(),
+            'summary': {}
+        }
+    
+    # Create a copy to avoid modifying the original
+    df = df_raw.copy()
+    
+    # Clean column names by stripping whitespace
+    df.columns = df.columns.str.strip()
+    
+    # Define expected columns for INDIA format
+    expected_cols = [
+        's_no', 'tradingsymbol', 'buy_value', 'buy_price', 
+        'buy_quantity', 'sell_quantity', 'sell_price', 
+        'sell_value', 'last_price', 'pnl'
+    ]
+    
+    # Check if we have the expected columns
+    missing_cols = set(expected_cols) - set(df.columns)
+    if missing_cols:
+        st.warning(f"Missing expected columns in INDIA data: {missing_cols}")
+        return {
+            'open_positions': pd.DataFrame(),
+            'closed_positions': pd.DataFrame(),
+            'summary': {}
+        }
+    
+    # Convert numeric columns
+    numeric_cols = ['buy_value', 'buy_price', 'buy_quantity', 'sell_quantity', 
+                   'sell_price', 'sell_value', 'last_price', 'pnl']
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Clean data
+    df = df.dropna(subset=['tradingsymbol'])
+    df = df[df['tradingsymbol'].astype(str).str.strip() != '']
+    
+    # ===================================================================
+    # SEPARATE OPEN AND CLOSED POSITIONS
+    # ===================================================================
+    
+    # Closed positions: buy_quantity == sell_quantity (fully closed)
+    closed_mask = (df['buy_quantity'] > 0) & (df['sell_quantity'] > 0) & (df['buy_quantity'] == df['sell_quantity'])
+    closed_df = df[closed_mask].copy()
+    
+    # Open positions: buy_quantity != sell_quantity or sell_quantity == 0
+    open_mask = ~closed_mask
+    open_df = df[open_mask].copy()
+    
+    # Calculate additional metrics for open positions
+    if not open_df.empty:
+        # Calculate net quantity
+        open_df['net_quantity'] = open_df['buy_quantity'] - open_df['sell_quantity']
+        
+        # Calculate average price for open positions
+        open_df['avg_price'] = np.where(
+            open_df['net_quantity'] != 0,
+            (open_df['buy_value'] - open_df['sell_value']) / open_df['net_quantity'],
+            0
+        )
+        
+        # Calculate unrealized P&L for open positions
+        open_df['unrealized_pnl'] = (open_df['last_price'] - open_df['avg_price']) * open_df['net_quantity']
+        
+        # Calculate open exposure
+        open_df['open_exposure'] = open_df['net_quantity'] * open_df['last_price']
+        
+        # Determine position type
+        open_df['position_type'] = open_df['net_quantity'].apply(lambda x: 'Long' if x > 0 else 'Short' if x < 0 else 'Flat')
+        
+        # Sort by unrealized P&L
+        open_df = open_df.sort_values('unrealized_pnl', ascending=False)
+    
+    # Calculate summary metrics
+    total_traded_volume = df['buy_value'].sum() + df['sell_value'].sum()
+    total_closed_pnl = closed_df['pnl'].sum() if not closed_df.empty else 0
+    total_unrealized_pnl = open_df['unrealized_pnl'].sum() if not open_df.empty else 0
+    total_open_exposure = open_df['open_exposure'].abs().sum() if not open_df.empty else 0
+    
+    # Calculate number of positions
+    open_positions_count = len(open_df)
+    closed_positions_count = len(closed_df)
+    
+    return {
+        'open_positions': open_df,
+        'closed_positions': closed_df,
+        'summary': {
+            'total_traded_volume': total_traded_volume,
+            'total_closed_pnl': total_closed_pnl,
+            'total_unrealized_pnl': total_unrealized_pnl,
+            'total_open_exposure': total_open_exposure,
+            'open_positions_count': open_positions_count,
+            'closed_positions_count': closed_positions_count,
+            'total_pnl': total_closed_pnl + total_unrealized_pnl
+        }
+    }
+
+def create_global_dashboard(df):
+    """Create GLOBAL dashboard"""
     
     if df.empty:
-        st.info(f"📭 No valid positions found for {region_name}.")
+        st.info("📭 No valid positions found for GLOBAL.")
         return
     
     # Calculate volume metrics
@@ -174,7 +283,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
         f"""
         <div style="text-align: center; margin-bottom: 1.2rem;">
             <span style="font-size: 2.4rem; font-weight: 800; color: {pnl_color};">
-                {format_currency(total_pnl, currency_symbol)}
+                {format_currency(total_pnl, "$")}
             </span>
             <br>
             <span style="font-size: 1.1rem; color: #666;">
@@ -195,7 +304,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
             f"""
             <div style="text-align: center;">
                 <div style="font-size: 0.95rem; font-weight: 600; color: #1f77b4; margin-bottom: 0.2rem;">Total Long Exposure</div>
-                <div style="font-size: 1.75rem; font-weight: 700; color: #1f77b4;">{format_currency(total_long_volume, currency_symbol)}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; color: #1f77b4;">{format_currency(total_long_volume, "$")}</div>
             </div>
             """, 
             unsafe_allow_html=True
@@ -206,7 +315,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
             f"""
             <div style="text-align: center;">
                 <div style="font-size: 0.95rem; font-weight: 600; color: #ff4b4b; margin-bottom: 0.2rem;">Total Short Exposure</div>
-                <div style="font-size: 1.75rem; font-weight: 700; color: #ff4b4b;">{format_currency(total_short_volume, currency_symbol)}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; color: #ff4b4b;">{format_currency(total_short_volume, "$")}</div>
             </div>
             """, 
             unsafe_allow_html=True
@@ -217,7 +326,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
             f"""
             <div style="text-align: center;">
                 <div style="font-size: 0.95rem; font-weight: 600; color: #000000; margin-bottom: 0.2rem;">Total Exposure</div>
-                <div style="font-size: 1.75rem; font-weight: 700; color: #000000;">{format_currency(total_volume, currency_symbol)}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; color: #000000;">{format_currency(total_volume, "$")}</div>
             </div>
             """, 
             unsafe_allow_html=True
@@ -234,8 +343,8 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
             unsafe_allow_html=True
         )
     
-    # Show appropriate timezone based on region
-    st.caption(f"Last updated: {get_time_with_timezone(region_name.split()[0])}")
+    # Show appropriate timezone
+    st.caption(f"Last updated: {get_time_with_timezone('GLOBAL')}")
     
     st.divider()
     
@@ -251,17 +360,17 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
     ]].copy()
     
     # Formatting
-    display_df['AvgCost'] = display_df['AvgCost'].apply(lambda x: format_currency(x, currency_symbol))
-    display_df['MarketPrice'] = display_df['MarketPrice'].apply(lambda x: format_currency(x, currency_symbol))
-    display_df['UnrealizedPnL'] = display_df['UnrealizedPnL'].apply(lambda x: format_currency(x, currency_symbol))
+    display_df['AvgCost'] = display_df['AvgCost'].apply(lambda x: format_currency(x, "$"))
+    display_df['MarketPrice'] = display_df['MarketPrice'].apply(lambda x: format_currency(x, "$"))
+    display_df['UnrealizedPnL'] = display_df['UnrealizedPnL'].apply(lambda x: format_currency(x, "$"))
     display_df['UnrealizedPnL%'] = display_df['UnrealizedPnL%'].apply(format_percent)
     
     # Color styling
     def color_pnl(val):
         if isinstance(val, str):
-            if "−" in val or f"{currency_symbol}-" in val or (val.startswith("-") and currency_symbol not in val):
+            if "−" in val or "$-" in val or (val.startswith("-") and "$" not in val):
                 return "color: red; font-weight: bold;"
-            elif val.startswith(f"{currency_symbol}") or "+" in val:
+            elif val.startswith("$") or "+" in val:
                 return "color: green; font-weight: bold;"
         return ""
     
@@ -307,7 +416,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
         fig1.update_layout(
             height=chart_height, 
             showlegend=False, 
-            xaxis_title=f"P&L ({currency_symbol})",
+            xaxis_title="P&L ($)",
             yaxis_title="",
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
@@ -330,7 +439,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
             height=chart_height, 
             showlegend=False, 
             xaxis_title="Position Type", 
-            yaxis_title=f"P&L ({currency_symbol})",
+            yaxis_title="P&L ($)",
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
         )
@@ -356,7 +465,7 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
         fig3.update_layout(
             height=chart_height, 
             showlegend=False, 
-            xaxis_title=f"P&L ({currency_symbol})",
+            xaxis_title="P&L ($)",
             yaxis_title="",
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)'
@@ -383,6 +492,252 @@ def create_dashboard_tab(df, region_name, currency_symbol="$"):
         )
         st.plotly_chart(fig4, use_container_width=True)
 
+def create_india_dashboard(data_dict):
+    """Create INDIA dashboard with new format"""
+    
+    open_df = data_dict['open_positions']
+    closed_df = data_dict['closed_positions']
+    summary = data_dict['summary']
+    
+    if open_df.empty and closed_df.empty:
+        st.info("📭 No positions found for INDIA.")
+        return
+    
+    # ===================================================================
+    # 🎯 BIG BOLD TOTAL P&L (Closed + Unrealized)
+    # ===================================================================
+    total_pnl = summary.get('total_pnl', 0)
+    pnl_color = "green" if total_pnl >= 0 else "red"
+    pnl_symbol = "▲" if total_pnl >= 0 else "▼"
+    
+    st.markdown(
+        f"""
+        <div style="text-align: center; margin-bottom: 1.2rem;">
+            <span style="font-size: 2.4rem; font-weight: 800; color: {pnl_color};">
+                {format_inr(total_pnl)}
+            </span>
+            <br>
+            <span style="font-size: 1.1rem; color: #666;">
+                {pnl_symbol} Total P&L (Closed + Unrealized)
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # ===================================================================
+    # 📊 KEY METRICS
+    # ===================================================================
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    
+    with col1:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #1f77b4; margin-bottom: 0.2rem;">Closed P&L</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1f77b4;">{format_inr(summary.get('total_closed_pnl', 0))}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    with col2:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #ff7f0e; margin-bottom: 0.2rem;">Unrealized P&L</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #ff7f0e;">{format_inr(summary.get('total_unrealized_pnl', 0))}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    with col3:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #2ca02c; margin-bottom: 0.2rem;">Traded Volume</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #2ca02c;">{format_inr(summary.get('total_traded_volume', 0))}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    with col4:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #d62728; margin-bottom: 0.2rem;">Open Exposure</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #d62728;">{format_inr(summary.get('total_open_exposure', 0))}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    with col5:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #9467bd; margin-bottom: 0.2rem;">Open Positions</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #9467bd;">{summary.get('open_positions_count', 0)}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    with col6:
+        st.markdown(
+            f"""
+            <div style="text-align: center;">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #8c564b; margin-bottom: 0.2rem;">Closed Positions</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #8c564b;">{summary.get('closed_positions_count', 0)}</div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    
+    # Show appropriate timezone
+    st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
+    
+    # ===================================================================
+    # 📋 OPEN POSITIONS
+    # ===================================================================
+    if not open_df.empty:
+        st.divider()
+        st.subheader("📈 Open Positions")
+        
+        # Prepare display dataframe for open positions
+        open_display_df = open_df[[
+            'tradingsymbol', 'position_type', 'net_quantity',
+            'avg_price', 'last_price', 'unrealized_pnl', 'open_exposure'
+        ]].copy()
+        
+        # Rename columns for better display
+        open_display_df = open_display_df.rename(columns={
+            'tradingsymbol': 'Symbol',
+            'position_type': 'Position',
+            'net_quantity': 'Quantity',
+            'avg_price': 'Avg Price',
+            'last_price': 'Last Price',
+            'unrealized_pnl': 'Unrealized P&L',
+            'open_exposure': 'Open Exposure'
+        })
+        
+        # Format columns
+        open_display_df['Avg Price'] = open_display_df['Avg Price'].apply(format_inr)
+        open_display_df['Last Price'] = open_display_df['Last Price'].apply(format_inr)
+        open_display_df['Unrealized P&L'] = open_display_df['Unrealized P&L'].apply(format_inr)
+        open_display_df['Open Exposure'] = open_display_df['Open Exposure'].apply(format_inr)
+        
+        # Color styling for P&L
+        def color_india_pnl(val):
+            if isinstance(val, str):
+                if "−" in val or "₹-" in val or (val.startswith("-") and "₹" not in val):
+                    return "color: red; font-weight: bold;"
+                elif val.startswith("₹") or "+" in val:
+                    return "color: green; font-weight: bold;"
+            return ""
+        
+        styled_open_df = open_display_df.style.map(color_india_pnl, subset=['Unrealized P&L'])
+        
+        st.dataframe(styled_open_df, use_container_width=True, height=300)
+    
+    # ===================================================================
+    # 📋 CLOSED POSITIONS
+    # ===================================================================
+    if not closed_df.empty:
+        st.divider()
+        st.subheader("📊 Closed Positions (Today)")
+        
+        # Prepare display dataframe for closed positions
+        closed_display_df = closed_df[[
+            'tradingsymbol', 'buy_quantity', 'buy_price',
+            'sell_quantity', 'sell_price', 'pnl'
+        ]].copy()
+        
+        # Rename columns for better display
+        closed_display_df = closed_display_df.rename(columns={
+            'tradingsymbol': 'Symbol',
+            'buy_quantity': 'Buy Qty',
+            'buy_price': 'Buy Price',
+            'sell_quantity': 'Sell Qty',
+            'sell_price': 'Sell Price',
+            'pnl': 'Realized P&L'
+        })
+        
+        # Format columns
+        closed_display_df['Buy Price'] = closed_display_df['Buy Price'].apply(format_inr)
+        closed_display_df['Sell Price'] = closed_display_df['Sell Price'].apply(format_inr)
+        closed_display_df['Realized P&L'] = closed_display_df['Realized P&L'].apply(format_inr)
+        
+        # Color styling for P&L
+        styled_closed_df = closed_display_df.style.map(color_india_pnl, subset=['Realized P&L'])
+        
+        st.dataframe(styled_closed_df, use_container_width=True, height=300)
+    
+    # ===================================================================
+    # 📈 CHARTS FOR INDIA
+    # ===================================================================
+    st.divider()
+    st.subheader("📊 Performance Analysis")
+    
+    if not open_df.empty or not closed_df.empty:
+        chart_col1, chart_col2 = st.columns(2)
+        
+        with chart_col1:
+            # P&L Distribution Chart
+            st.subheader("💰 P&L Distribution")
+            
+            if not open_df.empty and not closed_df.empty:
+                # Combine open and closed P&L data
+                pnl_data = pd.DataFrame({
+                    'Category': ['Closed P&L', 'Unrealized P&L'],
+                    'Amount': [summary['total_closed_pnl'], summary['total_unrealized_pnl']]
+                })
+                
+                fig1 = px.bar(
+                    pnl_data,
+                    x='Category',
+                    y='Amount',
+                    color='Category',
+                    color_discrete_map={'Closed P&L': '#1f77b4', 'Unrealized P&L': '#ff7f0e'},
+                    text=[format_inr(x) for x in pnl_data['Amount']]
+                )
+                fig1.update_layout(
+                    height=300,
+                    showlegend=False,
+                    xaxis_title="",
+                    yaxis_title="Amount (₹)",
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig1, use_container_width=True)
+            else:
+                st.info("No P&L data available for chart.")
+        
+        with chart_col2:
+            # Positions Overview Chart
+            st.subheader("📊 Positions Overview")
+            
+            positions_data = pd.DataFrame({
+                'Category': ['Open Positions', 'Closed Positions'],
+                'Count': [summary['open_positions_count'], summary['closed_positions_count']]
+            })
+            
+            fig2 = px.pie(
+                positions_data,
+                values='Count',
+                names='Category',
+                hole=0.4,
+                color_discrete_sequence=['#9467bd', '#8c564b']
+            )
+            fig2.update_layout(
+                height=300,
+                showlegend=True,
+                legend=dict(orientation="v", yanchor="middle", y=0.5, x=1.1)
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+
 # ===================================================================
 # 🏠 MAIN APP - SIMPLE AND CLEAN
 # ===================================================================
@@ -392,8 +747,8 @@ df_global_raw = load_sheet_data(sheet_gid="5320120")  # GLOBAL sheet
 df_india_raw = load_sheet_data(sheet_gid="649765105")  # INDIA sheet
 
 # Process data
-df_global = process_data(df_global_raw, "GLOBAL", "$")
-df_india = process_data(df_india_raw, "INDIA", "₹")
+df_global = process_global_data(df_global_raw)
+india_data = process_india_data(df_india_raw)
 
 # ===================================================================
 # 🎨 CSS for Bigger Tabs
@@ -446,7 +801,7 @@ tab1, tab2 = st.tabs([
 ])
 
 with tab1:
-    create_dashboard_tab(df_global, "GLOBAL DASHBOARD", "$")
+    create_global_dashboard(df_global)
 
 with tab2:
-    create_dashboard_tab(df_india, "INDIA DASHBOARD", "₹")
+    create_india_dashboard(india_data)
