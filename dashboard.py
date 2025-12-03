@@ -726,13 +726,13 @@ def create_india_dashboard(data_dict, live_pnl_df):
             # Create metrics row
             metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
             
-            with metric_col1:
-                current_color = "green" if latest_pnl >= 0 else "red"
-                st.metric(
-                    label="Current P&L",
-                    value=format_inr(latest_pnl),
-                    delta=format_inr(current_change)
-                )
+            # with metric_col1:
+            #     current_color = "green" if latest_pnl >= 0 else "red"
+            #     st.metric(
+            #         label="Current P&L",
+            #         value=format_inr(latest_pnl),
+            #         delta=format_inr(current_change)
+            #     )
             
             with metric_col2:
                 st.metric(
@@ -748,13 +748,13 @@ def create_india_dashboard(data_dict, live_pnl_df):
                     delta=None
                 )
             
-            with metric_col4:
-                data_points = len(live_pnl_df)
-                st.metric(
-                    label="Data Points",
-                    value=f"{data_points}",
-                    delta=None
-                )
+            # with metric_col4:
+            #     data_points = len(live_pnl_df)
+            #     st.metric(
+            #         label="Data Points",
+            #         value=f"{data_points}",
+            #         delta=None
+            #     )
         
         # Create professional line chart for Live P&L
         fig = go.Figure()
