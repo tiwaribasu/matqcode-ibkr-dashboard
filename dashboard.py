@@ -613,7 +613,7 @@ def create_india_dashboard(data_dict):
     st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
     
         # ===================================================================
-    # 📋 OPEN POSITIONS
+    # 📋 OPEN POSITIONS (HTML Table Alternative)
     # ===================================================================
     if not open_df.empty:
         st.divider()
@@ -642,45 +642,48 @@ def create_india_dashboard(data_dict):
         open_display_df['Unrealized P&L'] = open_display_df['Unrealized P&L'].apply(format_inr)
         open_display_df['Open Exposure'] = open_display_df['Open Exposure'].apply(format_inr)
         
-        # Reset index to remove index column
-        open_display_df = open_display_df.reset_index(drop=True)
+        # Create HTML table
+        html_table = """
+        <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+        """
         
-        # Use st.table for cleaner display without index
-        st.table(open_display_df)
-    
-    # ===================================================================
-    # 📋 CLOSED POSITIONS
-    # ===================================================================
-    if not closed_df.empty:
-        st.divider()
-        st.subheader("📊 Closed Positions (Today)")
+        # Add headers
+        for col in open_display_df.columns:
+            html_table += f'<th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">{col}</th>'
         
-        # Prepare display dataframe for closed positions
-        closed_display_df = closed_df[[
-            'tradingsymbol', 'buy_quantity', 'buy_price',
-            'sell_quantity', 'sell_price', 'pnl'
-        ]].copy()
+        html_table += """
+                </tr>
+            </thead>
+            <tbody>
+        """
         
-        # Rename columns for better display
-        closed_display_df = closed_display_df.rename(columns={
-            'tradingsymbol': 'Symbol',
-            'buy_quantity': 'Buy Qty',
-            'buy_price': 'Buy Price',
-            'sell_quantity': 'Sell Qty',
-            'sell_price': 'Sell Price',
-            'pnl': 'Realized P&L'
-        })
+        # Add rows with color coding for P&L
+        for _, row in open_display_df.iterrows():
+            html_table += '<tr>'
+            for col in open_display_df.columns:
+                cell_value = row[col]
+                style = "padding: 8px; border-bottom: 1px solid #ddd;"
+                
+                # Color code P&L column
+                if col == 'Unrealized P&L':
+                    if '₹-' in str(cell_value) or '-' in str(cell_value):
+                        style += "color: red; font-weight: bold;"
+                    else:
+                        style += "color: green; font-weight: bold;"
+                
+                html_table += f'<td style="{style}">{cell_value}</td>'
+            html_table += '</tr>'
         
-        # Format columns
-        closed_display_df['Buy Price'] = closed_display_df['Buy Price'].apply(format_inr)
-        closed_display_df['Sell Price'] = closed_display_df['Sell Price'].apply(format_inr)
-        closed_display_df['Realized P&L'] = closed_display_df['Realized P&L'].apply(format_inr)
+        html_table += """
+            </tbody>
+        </table>
+        </div>
+        """
         
-        # Reset index to remove index column
-        closed_display_df = closed_display_df.reset_index(drop=True)
-        
-        # Use st.table for cleaner display without index
-        st.table(closed_display_df)
+        st.markdown(html_table, unsafe_allow_html=True)
     
     # ===================================================================
     # 📈 CHARTS FOR INDIA
