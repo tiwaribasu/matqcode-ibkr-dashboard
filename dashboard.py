@@ -349,7 +349,7 @@ def create_global_dashboard(df):
     st.divider()
     
     # ===================================================================
-    # 📋 Open Positions — ONLY VALID ROWS
+    # 📋 Open Positions — CLEAN TABLE WITHOUT INDEX
     # ===================================================================
     st.subheader("📋 Open Positions")
     
@@ -365,29 +365,82 @@ def create_global_dashboard(df):
     display_df['UnrealizedPnL'] = display_df['UnrealizedPnL'].apply(lambda x: format_currency(x, "$"))
     display_df['UnrealizedPnL%'] = display_df['UnrealizedPnL%'].apply(format_percent)
     
-    # Color styling
-    def color_pnl(val):
-        if isinstance(val, str):
-            if "−" in val or "$-" in val or (val.startswith("-") and "$" not in val):
-                return "color: red; font-weight: bold;"
-            elif val.startswith("$") or "+" in val:
-                return "color: green; font-weight: bold;"
-        return ""
+    # Create HTML table for GLOBAL positions
+    html_table = """
+    <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Strategy Name</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Account</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Symbol</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">SecType</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Long/Short</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Position</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Avg Cost</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Market Price</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Unrealized P&L</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Unrealized P&L%</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
     
-    def color_percent(val):
-        if isinstance(val, str) and val.endswith("%"):
-            if val.startswith("-") or "−" in val:
-                return "color: red; font-weight: bold;"
-            elif val.startswith("+"):
-                return "color: green; font-weight: bold;"
-        return ""
+    # Add rows with color coding for P&L
+    for _, row in display_df.iterrows():
+        html_table += '<tr>'
+        
+        # Strategy Name
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Strategy Name"]}</td>'
+        
+        # Account
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Account"]}</td>'
+        
+        # Symbol
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Symbol"]}</td>'
+        
+        # SecType
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["SecType"]}</td>'
+        
+        # Long/Short
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Long/Short"]}</td>'
+        
+        # Position
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Position"]}</td>'
+        
+        # AvgCost
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["AvgCost"]}</td>'
+        
+        # MarketPrice
+        html_table += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["MarketPrice"]}</td>'
+        
+        # UnrealizedPnL - with color coding
+        pnl_style = "padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;"
+        pnl_value = row["UnrealizedPnL"]
+        if "$-" in str(pnl_value) or "-" in str(pnl_value) or "−" in str(pnl_value):
+            pnl_style += "color: red;"
+        else:
+            pnl_style += "color: green;"
+        html_table += f'<td style="{pnl_style}">{pnl_value}</td>'
+        
+        # UnrealizedPnL% - with color coding
+        pnl_pct_style = "padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;"
+        pnl_pct_value = row["UnrealizedPnL%"]
+        if "-" in str(pnl_pct_value) or "−" in str(pnl_pct_value):
+            pnl_pct_style += "color: red;"
+        else:
+            pnl_pct_style += "color: green;"
+        html_table += f'<td style="{pnl_pct_style}">{pnl_pct_value}</td>'
+        
+        html_table += '</tr>'
     
-    # ✅ Use .map() instead of .applymap()
-    styled_df = display_df.style \
-        .map(color_pnl, subset=['UnrealizedPnL']) \
-        .map(color_percent, subset=['UnrealizedPnL%'])
+    html_table += """
+        </tbody>
+    </table>
+    </div>
+    """
     
-    st.dataframe(styled_df, use_container_width=True, height=500)
+    st.markdown(html_table, unsafe_allow_html=True)
     
     # ===================================================================
     # 📈 Charts - 4 PROFESSIONAL PLOTS (2 per row)
@@ -612,8 +665,8 @@ def create_india_dashboard(data_dict):
     # Show appropriate timezone
     st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
     
-        # ===================================================================
-    # 📋 OPEN POSITIONS (HTML Table Alternative)
+    # ===================================================================
+    # 📋 OPEN POSITIONS
     # ===================================================================
     if not open_df.empty:
         st.divider()
@@ -642,19 +695,19 @@ def create_india_dashboard(data_dict):
         open_display_df['Unrealized P&L'] = open_display_df['Unrealized P&L'].apply(format_inr)
         open_display_df['Open Exposure'] = open_display_df['Open Exposure'].apply(format_inr)
         
-        # Create HTML table
-        html_table = """
+        # Create HTML table for open positions
+        html_table_open = """
         <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
             <thead>
                 <tr style="background-color: #f2f2f2;">
-        """
-        
-        # Add headers
-        for col in open_display_df.columns:
-            html_table += f'<th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">{col}</th>'
-        
-        html_table += """
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Symbol</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Position</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Quantity</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Avg Price</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Last Price</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Unrealized P&L</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Open Exposure</th>
                 </tr>
             </thead>
             <tbody>
@@ -662,28 +715,127 @@ def create_india_dashboard(data_dict):
         
         # Add rows with color coding for P&L
         for _, row in open_display_df.iterrows():
-            html_table += '<tr>'
-            for col in open_display_df.columns:
-                cell_value = row[col]
-                style = "padding: 8px; border-bottom: 1px solid #ddd;"
-                
-                # Color code P&L column
-                if col == 'Unrealized P&L':
-                    if '₹-' in str(cell_value) or '-' in str(cell_value):
-                        style += "color: red; font-weight: bold;"
-                    else:
-                        style += "color: green; font-weight: bold;"
-                
-                html_table += f'<td style="{style}">{cell_value}</td>'
-            html_table += '</tr>'
+            html_table_open += '<tr>'
+            
+            # Symbol
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Symbol"]}</td>'
+            
+            # Position
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Position"]}</td>'
+            
+            # Quantity
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Quantity"]}</td>'
+            
+            # Avg Price
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Avg Price"]}</td>'
+            
+            # Last Price
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Last Price"]}</td>'
+            
+            # Unrealized P&L - with color coding
+            pnl_style = "padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;"
+            pnl_value = row["Unrealized P&L"]
+            if "₹-" in str(pnl_value) or "-" in str(pnl_value) or "−" in str(pnl_value):
+                pnl_style += "color: red;"
+            else:
+                pnl_style += "color: green;"
+            html_table_open += f'<td style="{pnl_style}">{pnl_value}</td>'
+            
+            # Open Exposure
+            html_table_open += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Open Exposure"]}</td>'
+            
+            html_table_open += '</tr>'
         
-        html_table += """
+        html_table_open += """
             </tbody>
         </table>
         </div>
         """
         
-        st.markdown(html_table, unsafe_allow_html=True)
+        st.markdown(html_table_open, unsafe_allow_html=True)
+    
+    # ===================================================================
+    # 📋 CLOSED POSITIONS
+    # ===================================================================
+    if not closed_df.empty:
+        st.divider()
+        st.subheader("📊 Closed Positions (Today)")
+        
+        # Prepare display dataframe for closed positions
+        closed_display_df = closed_df[[
+            'tradingsymbol', 'buy_quantity', 'buy_price',
+            'sell_quantity', 'sell_price', 'pnl'
+        ]].copy()
+        
+        # Rename columns for better display
+        closed_display_df = closed_display_df.rename(columns={
+            'tradingsymbol': 'Symbol',
+            'buy_quantity': 'Buy Qty',
+            'buy_price': 'Buy Price',
+            'sell_quantity': 'Sell Qty',
+            'sell_price': 'Sell Price',
+            'pnl': 'Realized P&L'
+        })
+        
+        # Format columns
+        closed_display_df['Buy Price'] = closed_display_df['Buy Price'].apply(format_inr)
+        closed_display_df['Sell Price'] = closed_display_df['Sell Price'].apply(format_inr)
+        closed_display_df['Realized P&L'] = closed_display_df['Realized P&L'].apply(format_inr)
+        
+        # Create HTML table for closed positions
+        html_table_closed = """
+        <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Symbol</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Buy Qty</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Buy Price</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Sell Qty</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Sell Price</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #ddd;">Realized P&L</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        
+        # Add rows with color coding for P&L
+        for _, row in closed_display_df.iterrows():
+            html_table_closed += '<tr>'
+            
+            # Symbol
+            html_table_closed += f'<td style="padding: 8px; border-bottom: 1px solid #ddd;">{row["Symbol"]}</td>'
+            
+            # Buy Qty
+            html_table_closed += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Buy Qty"]}</td>'
+            
+            # Buy Price
+            html_table_closed += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Buy Price"]}</td>'
+            
+            # Sell Qty
+            html_table_closed += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Sell Qty"]}</td>'
+            
+            # Sell Price
+            html_table_closed += f'<td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">{row["Sell Price"]}</td>'
+            
+            # Realized P&L - with color coding
+            pnl_style = "padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;"
+            pnl_value = row["Realized P&L"]
+            if "₹-" in str(pnl_value) or "-" in str(pnl_value) or "−" in str(pnl_value):
+                pnl_style += "color: red;"
+            else:
+                pnl_style += "color: green;"
+            html_table_closed += f'<td style="{pnl_style}">{pnl_value}</td>'
+            
+            html_table_closed += '</tr>'
+        
+        html_table_closed += """
+            </tbody>
+        </table>
+        </div>
+        """
+        
+        st.markdown(html_table_closed, unsafe_allow_html=True)
     
     # ===================================================================
     # 📈 CHARTS FOR INDIA
