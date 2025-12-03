@@ -938,6 +938,69 @@ def create_india_dashboard(data_dict):
                 legend=dict(orientation="v", yanchor="middle", y=0.5, x=1.1)
             )
             st.plotly_chart(fig2, use_container_width=True)
+    
+    # ===================================================================
+    # 📈 CHARTS FOR INDIA
+    # ===================================================================
+    st.divider()
+    st.subheader("📊 Performance Analysis")
+    
+    if not open_df.empty or not closed_df.empty:
+        chart_col1, chart_col2 = st.columns(2)
+        
+        with chart_col1:
+            # P&L Distribution Chart
+            st.subheader("💰 P&L Distribution")
+            
+            if not open_df.empty and not closed_df.empty:
+                # Combine open and closed P&L data
+                pnl_data = pd.DataFrame({
+                    'Category': ['Closed P&L', 'Unrealized P&L'],
+                    'Amount': [summary['total_closed_pnl'], summary['total_unrealized_pnl']]
+                })
+                
+                fig1 = px.bar(
+                    pnl_data,
+                    x='Category',
+                    y='Amount',
+                    color='Category',
+                    color_discrete_map={'Closed P&L': '#1f77b4', 'Unrealized P&L': '#ff7f0e'},
+                    text=[format_inr(x) for x in pnl_data['Amount']]
+                )
+                fig1.update_layout(
+                    height=300,
+                    showlegend=False,
+                    xaxis_title="",
+                    yaxis_title="Amount (₹)",
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig1, use_container_width=True)
+            else:
+                st.info("No P&L data available for chart.")
+        
+        with chart_col2:
+            # Positions Overview Chart
+            st.subheader("📊 Positions Overview")
+            
+            positions_data = pd.DataFrame({
+                'Category': ['Open Positions', 'Closed Positions'],
+                'Count': [summary['open_positions_count'], summary['closed_positions_count']]
+            })
+            
+            fig2 = px.pie(
+                positions_data,
+                values='Count',
+                names='Category',
+                hole=0.4,
+                color_discrete_sequence=['#9467bd', '#8c564b']
+            )
+            fig2.update_layout(
+                height=300,
+                showlegend=True,
+                legend=dict(orientation="v", yanchor="middle", y=0.5, x=1.1)
+            )
+            st.plotly_chart(fig2, use_container_width=True)
 
 def create_india_live_dashboard(live_pnl_df):
     """Create INDIA LIVE dashboard with Live P&L chart"""
