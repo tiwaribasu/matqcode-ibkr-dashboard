@@ -66,7 +66,7 @@ def get_time_with_timezone(region):
 # ===================================================================
 # 📥 Load & Clean Data — WITH AUTOMATIC REFRESH
 # ===================================================================
-@st.cache_data(ttl=REFRESH_INTERVAL_SEC)
+# @st.cache_data(ttl=REFRESH_INTERVAL_SEC)
 def load_sheet_data(sheet_gid="0"):
     """Load specific sheet from Google Sheets using gid parameter"""
     try:
