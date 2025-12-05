@@ -956,8 +956,8 @@ st.markdown("""
 # ===================================================================
 
 tab1, tab2 = st.tabs([
-    "🌍 **GLOBAL DASHBOARD**", 
-    "🇮🇳 **INDIA DASHBOARD**"
+    "🌍 **GLOBAL**", 
+    "🇮🇳 **INDIA**"
 ])
 
 with tab1:
