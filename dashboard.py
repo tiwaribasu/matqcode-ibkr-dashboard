@@ -724,141 +724,405 @@ def create_india_dashboard(data_dict, live_pnl_df):
         st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
 
     
+    # # ===================================================================
+    # # 📈 LIVE P&L CHART (Today's P&L)
+    # # ===================================================================
+    # if not live_pnl_df.empty:
+    #     st.divider()
+    #     # st.subheader("📈 Today's Live P&L Trend")
+        
+    #     # Get today's date for display
+    #     ist_tz = pytz.timezone('Asia/Kolkata')
+    #     today_date = datetime.now(ist_tz).strftime('%Y-%m-%d')
+        
+    #     # Calculate stats for display
+    #     if len(live_pnl_df) > 0:
+    #         latest_pnl = live_pnl_df['Total PnL'].iloc[-1]
+    #         highest_pnl = live_pnl_df['Total PnL'].max()
+    #         lowest_pnl = live_pnl_df['Total PnL'].min()
+    #         start_pnl = live_pnl_df['Total PnL'].iloc[0] if len(live_pnl_df) > 0 else 0
+    #         current_change = latest_pnl - start_pnl
+            
+    #         # Create metrics row
+    #         metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+            
+    #         # with metric_col1:
+    #         #     current_color = "green" if latest_pnl >= 0 else "red"
+    #         #     st.metric(
+    #         #         label="Current P&L",
+    #         #         value=format_inr(latest_pnl),
+    #         #         delta=format_inr(current_change)
+    #         #     )
+            
+    #         with metric_col2:
+    #             st.metric(
+    #                 label="Today's High",
+    #                 value=format_inr(highest_pnl),
+    #                 delta=None
+    #             )
+            
+    #         with metric_col3:
+    #             st.metric(
+    #                 label="Today's Low",
+    #                 value=format_inr(lowest_pnl),
+    #                 delta=None
+    #             )
+            
+    #         # with metric_col4:
+    #         #     data_points = len(live_pnl_df)
+    #         #     st.metric(
+    #         #         label="Data Points",
+    #         #         value=f"{data_points}",
+    #         #         delta=None
+    #         #     )
+        
+    #     # Create professional line chart for Live P&L
+    #     fig = go.Figure()
+        
+    #     # Add the main line
+    #     fig.add_trace(go.Scatter(
+    #         x=live_pnl_df['DateTime'],
+    #         y=live_pnl_df['Total PnL'],
+    #         mode='lines+markers',
+    #         name='Live P&L',
+    #         line=dict(color='#00D4AA', width=3),
+    #         marker=dict(size=6, color='#00D4AA'),
+    #         hovertemplate='<b>Time:</b> %{x|%H:%M:%S}<br><b>P&L:</b> ₹%{y:,.2f}<extra></extra>'
+    #     ))
+        
+    #     # Add zero line reference
+    #     fig.add_hline(
+    #         y=0,
+    #         line_dash="dash",
+    #         line_color="gray",
+    #         line_width=1,
+    #         opacity=0.5
+    #     )
+        
+    #     # Add fill for positive/negative areas
+    #     fig.add_trace(go.Scatter(
+    #         x=live_pnl_df['DateTime'],
+    #         y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] >= 0),
+    #         mode='none',
+    #         fill='tozeroy',
+    #         fillcolor='rgba(0, 212, 170, 0.2)',
+    #         name='Positive',
+    #         showlegend=False
+    #     ))
+        
+    #     fig.add_trace(go.Scatter(
+    #         x=live_pnl_df['DateTime'],
+    #         y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] < 0),
+    #         mode='none',
+    #         fill='tozeroy',
+    #         fillcolor='rgba(255, 75, 75, 0.2)',
+    #         name='Negative',
+    #         showlegend=False
+    #     ))
+        
+    #     # Update layout for professional look
+    #     fig.update_layout(
+    #         height=400,
+    #         # title=f"Live P&L Trend ({today_date})",
+    #         # title_font=dict(size=20, color='#333'),
+    #         xaxis_title="Time (IST)",
+    #         yaxis_title="P&L (₹)",
+    #         plot_bgcolor='rgba(0,0,0,0)',
+    #         paper_bgcolor='rgba(0,0,0,0)',
+    #         font=dict(family="Arial, sans-serif", size=12, color="#333"),
+    #         hovermode='x unified',
+    #         xaxis=dict(
+    #             showgrid=True,
+    #             gridcolor='rgba(128, 128, 128, 0.2)',
+    #             tickformat='%H:%M',
+    #             title_font=dict(size=14)
+    #         ),
+    #         yaxis=dict(
+    #             showgrid=True,
+    #             gridcolor='rgba(128, 128, 128, 0.2)',
+    #             tickprefix='₹',
+    #             title_font=dict(size=14)
+    #         ),
+    #         legend=dict(
+    #             orientation="h",
+    #             yanchor="bottom",
+    #             y=1.02,
+    #             xanchor="right",
+    #             x=1
+    #         )
+    #     )
+        
+    #     st.plotly_chart(fig, use_container_width=True)
+        
+    #     # # Show data summary
+    #     # if len(live_pnl_df) > 1:
+    #     #     time_range = live_pnl_df['DateTime'].iloc[-1] - live_pnl_df['DateTime'].iloc[0]
+    #     #     avg_interval = time_range / (len(live_pnl_df) - 1) if len(live_pnl_df) > 1 else pd.Timedelta(0)
+    #         # st.caption(f"📊 Data from {live_pnl_df['DateTime'].iloc[0].strftime('%H:%M:%S')} to {live_pnl_df['DateTime'].iloc[-1].strftime('%H:%M:%S')} | Average interval: {avg_interval.seconds // 60} min {avg_interval.seconds % 60} sec")
+
+
     # ===================================================================
-    # 📈 LIVE P&L CHART (Today's P&L)
-    # ===================================================================
-    if not live_pnl_df.empty:
-        st.divider()
-        # st.subheader("📈 Today's Live P&L Trend")
+# 📈 LIVE P&L CHART (Today's P&L) - ENHANCED SMOOTH VERSION
+# ===================================================================
+if not live_pnl_df.empty:
+    st.divider()
+    
+    # Get today's date for display
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    today_date = datetime.now(ist_tz).strftime('%Y-%m-%d')
+    
+    # Create professional line chart for Live P&L with smooth edges
+    fig = go.Figure()
+    
+    # Sort by DateTime to ensure proper line connection
+    live_pnl_df = live_pnl_df.sort_values('DateTime')
+    
+    # Create a smoother line using interpolation (optional)
+    # You can skip interpolation if you want to show actual data points
+    if len(live_pnl_df) > 1:
+        # Create time-based interpolation for smoother curve
+        live_pnl_df['DateTime_numeric'] = live_pnl_df['DateTime'].astype(np.int64) // 10**9
+        live_pnl_df = live_pnl_df.sort_values('DateTime_numeric')
         
-        # Get today's date for display
-        ist_tz = pytz.timezone('Asia/Kolkata')
-        today_date = datetime.now(ist_tz).strftime('%Y-%m-%d')
-        
-        # Calculate stats for display
-        if len(live_pnl_df) > 0:
-            latest_pnl = live_pnl_df['Total PnL'].iloc[-1]
-            highest_pnl = live_pnl_df['Total PnL'].max()
-            lowest_pnl = live_pnl_df['Total PnL'].min()
-            start_pnl = live_pnl_df['Total PnL'].iloc[0] if len(live_pnl_df) > 0 else 0
-            current_change = latest_pnl - start_pnl
-            
-            # Create metrics row
-            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-            
-            # with metric_col1:
-            #     current_color = "green" if latest_pnl >= 0 else "red"
-            #     st.metric(
-            #         label="Current P&L",
-            #         value=format_inr(latest_pnl),
-            #         delta=format_inr(current_change)
-            #     )
-            
-            with metric_col2:
-                st.metric(
-                    label="Today's High",
-                    value=format_inr(highest_pnl),
-                    delta=None
-                )
-            
-            with metric_col3:
-                st.metric(
-                    label="Today's Low",
-                    value=format_inr(lowest_pnl),
-                    delta=None
-                )
-            
-            # with metric_col4:
-            #     data_points = len(live_pnl_df)
-            #     st.metric(
-            #         label="Data Points",
-            #         value=f"{data_points}",
-            #         delta=None
-            #     )
-        
-        # Create professional line chart for Live P&L
-        fig = go.Figure()
-        
-        # Add the main line
+        # Add the main line with smooth interpolation
         fig.add_trace(go.Scatter(
             x=live_pnl_df['DateTime'],
             y=live_pnl_df['Total PnL'],
-            mode='lines+markers',
+            mode='lines',  # Remove markers for cleaner look
             name='Live P&L',
-            line=dict(color='#00D4AA', width=3),
-            marker=dict(size=6, color='#00D4AA'),
+            line=dict(
+                shape='spline',  # This creates smooth curves
+                smoothing=1.3,   # Smoothness level (0-1.3)
+                width=4,         # Thicker line for better visibility
+                color='#2E8B57'  # Base color (green)
+            ),
+            hovertemplate='<b>Time:</b> %{x|%H:%M:%S}<br><b>P&L:</b> ₹%{y:,.2f}<extra></extra>',
+            connectgaps=False
+        ))
+        
+        # Create gradient fill based on positive/negative values
+        # For positive area
+        positive_mask = live_pnl_df['Total PnL'] >= 0
+        if positive_mask.any():
+            fig.add_trace(go.Scatter(
+                x=live_pnl_df.loc[positive_mask, 'DateTime'],
+                y=live_pnl_df.loc[positive_mask, 'Total PnL'],
+                mode='none',
+                fill='tozeroy',
+                fillcolor='rgba(46, 139, 87, 0.3)',  # Green gradient
+                name='Positive',
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+        
+        # For negative area
+        negative_mask = live_pnl_df['Total PnL'] < 0
+        if negative_mask.any():
+            fig.add_trace(go.Scatter(
+                x=live_pnl_df.loc[negative_mask, 'DateTime'],
+                y=live_pnl_df.loc[negative_mask, 'Total PnL'],
+                mode='none',
+                fill='tozeroy',
+                fillcolor='rgba(220, 53, 69, 0.3)',  # Red gradient
+                name='Negative',
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+        
+        # Add subtle markers for data points (optional)
+        fig.add_trace(go.Scatter(
+            x=live_pnl_df['DateTime'],
+            y=live_pnl_df['Total PnL'],
+            mode='markers',
+            name='Data Points',
+            marker=dict(
+                size=6,
+                color=live_pnl_df['Total PnL'].apply(
+                    lambda x: '#2E8B57' if x >= 0 else '#DC3545'
+                ),
+                line=dict(width=1, color='white')
+            ),
+            hovertemplate='<b>Time:</b> %{x|%H:%M:%S}<br><b>P&L:</b> ₹%{y:,.2f}<extra></extra>',
+            showlegend=False
+        ))
+    
+    else:
+        # Fallback for single data point
+        fig.add_trace(go.Scatter(
+            x=live_pnl_df['DateTime'],
+            y=live_pnl_df['Total PnL'],
+            mode='markers+lines',
+            name='Live P&L',
+            line=dict(width=4, color='#2E8B57'),
+            marker=dict(size=10, color='#2E8B57'),
             hovertemplate='<b>Time:</b> %{x|%H:%M:%S}<br><b>P&L:</b> ₹%{y:,.2f}<extra></extra>'
         ))
+    
+    # Add zero line reference with subtle styling
+    fig.add_hline(
+        y=0,
+        line_dash="solid",
+        line_color="rgba(100, 100, 100, 0.5)",
+        line_width=1.5,
+        opacity=0.7
+    )
+    
+    # Add current P&L value annotation if data exists
+    if len(live_pnl_df) > 0:
+        latest_pnl = live_pnl_df['Total PnL'].iloc[-1]
+        latest_time = live_pnl_df['DateTime'].iloc[-1]
         
-        # Add zero line reference
-        fig.add_hline(
-            y=0,
-            line_dash="dash",
-            line_color="gray",
-            line_width=1,
-            opacity=0.5
+        fig.add_annotation(
+            x=latest_time,
+            y=latest_pnl,
+            text=f"₹{latest_pnl:,.2f}",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=2,
+            arrowcolor='#333' if latest_pnl >= 0 else '#DC3545',
+            font=dict(size=12, color='white'),
+            bordercolor='#2E8B57' if latest_pnl >= 0 else '#DC3545',
+            borderwidth=2,
+            borderpad=4,
+            bgcolor='#2E8B57' if latest_pnl >= 0 else '#DC3545',
+            opacity=0.9
         )
+    
+    # Update layout for professional look with smooth aesthetics
+    fig.update_layout(
+        height=450,
+        # title=dict(
+        #     text=f"📈 Today's Live P&L Trend ({today_date})",
+        #     font=dict(size=20, color='#333', family='Arial'),
+        #     x=0.03,
+        #     y=0.95
+        # ),
+        xaxis_title="Time (IST)",
+        yaxis_title="P&L (₹)",
+        plot_bgcolor='rgba(240, 242, 246, 0.8)',  # Light gray background
+        paper_bgcolor='white',
+        font=dict(family="Segoe UI, Arial, sans-serif", size=12, color="#333"),
+        hovermode='x unified',
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="Arial"
+        ),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)',
+            gridwidth=1,
+            tickformat='%H:%M',
+            title_font=dict(size=14, color='#555'),
+            tickfont=dict(size=11, color='#666'),
+            linecolor='rgba(200, 200, 200, 0.5)',
+            linewidth=1,
+            mirror=True,
+            showline=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)',
+            gridwidth=1,
+            tickprefix='₹',
+            tickformat=',.0f',
+            title_font=dict(size=14, color='#555'),
+            tickfont=dict(size=11, color='#666'),
+            linecolor='rgba(200, 200, 200, 0.5)',
+            linewidth=1,
+            mirror=True,
+            showline=True
+        ),
+        showlegend=False,
+        margin=dict(l=60, r=30, t=50, b=60),
+        hoverdistance=100
+    )
+    
+    # Add range slider for zooming
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1h", step="hour", stepmode="backward"),
+                dict(count=3, label="3h", step="hour", stepmode="backward"),
+                dict(count=6, label="6h", step="hour", stepmode="backward"),
+                dict(step="all", label="All")
+            ]),
+            bgcolor='rgba(240, 242, 246, 0.8)',
+            bordercolor='rgba(200, 200, 200, 0.5)',
+            borderwidth=1,
+            x=0.01,
+            y=1.1,
+            xanchor='left',
+            yanchor='top'
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Add summary metrics below the chart
+    if len(live_pnl_df) > 0:
+        latest_pnl = live_pnl_df['Total PnL'].iloc[-1]
+        highest_pnl = live_pnl_df['Total PnL'].max()
+        lowest_pnl = live_pnl_df['Total PnL'].min()
+        avg_pnl = live_pnl_df['Total PnL'].mean()
+        pnl_change = latest_pnl - (live_pnl_df['Total PnL'].iloc[0] if len(live_pnl_df) > 0 else 0)
         
-        # Add fill for positive/negative areas
-        fig.add_trace(go.Scatter(
-            x=live_pnl_df['DateTime'],
-            y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] >= 0),
-            mode='none',
-            fill='tozeroy',
-            fillcolor='rgba(0, 212, 170, 0.2)',
-            name='Positive',
-            showlegend=False
-        ))
+        # Create metrics row
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
         
-        fig.add_trace(go.Scatter(
-            x=live_pnl_df['DateTime'],
-            y=live_pnl_df['Total PnL'].where(live_pnl_df['Total PnL'] < 0),
-            mode='none',
-            fill='tozeroy',
-            fillcolor='rgba(255, 75, 75, 0.2)',
-            name='Negative',
-            showlegend=False
-        ))
-        
-        # Update layout for professional look
-        fig.update_layout(
-            height=400,
-            # title=f"Live P&L Trend ({today_date})",
-            # title_font=dict(size=20, color='#333'),
-            xaxis_title="Time (IST)",
-            yaxis_title="P&L (₹)",
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Arial, sans-serif", size=12, color="#333"),
-            hovermode='x unified',
-            xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                tickformat='%H:%M',
-                title_font=dict(size=14)
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                tickprefix='₹',
-                title_font=dict(size=14)
-            ),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
+        with metric_col1:
+            current_color = "#2E8B57" if latest_pnl >= 0 else "#DC3545"
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 15px; background: {current_color}15; border-radius: 10px; border-left: 4px solid {current_color};">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 5px;">Current P&L</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: {current_color};">{format_inr(latest_pnl)}</div>
+                    <div style="font-size: 0.8rem; color: #777; margin-top: 5px;">{format_inr(pnl_change)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-        )
         
-        st.plotly_chart(fig, use_container_width=True)
+        with metric_col2:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 15px; background: rgba(46, 139, 87, 0.05); border-radius: 10px; border-left: 4px solid #2E8B57;">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 5px;">Today's High</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #2E8B57;">{format_inr(highest_pnl)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         
-        # # Show data summary
-        # if len(live_pnl_df) > 1:
-        #     time_range = live_pnl_df['DateTime'].iloc[-1] - live_pnl_df['DateTime'].iloc[0]
-        #     avg_interval = time_range / (len(live_pnl_df) - 1) if len(live_pnl_df) > 1 else pd.Timedelta(0)
-            # st.caption(f"📊 Data from {live_pnl_df['DateTime'].iloc[0].strftime('%H:%M:%S')} to {live_pnl_df['DateTime'].iloc[-1].strftime('%H:%M:%S')} | Average interval: {avg_interval.seconds // 60} min {avg_interval.seconds % 60} sec")
+        with metric_col3:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 15px; background: rgba(220, 53, 69, 0.05); border-radius: 10px; border-left: 4px solid #DC3545;">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 5px;">Today's Low</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #DC3545;">{format_inr(lowest_pnl)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        with metric_col4:
+            avg_color = "#2E8B57" if avg_pnl >= 0 else "#DC3545"
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 15px; background: {avg_color}15; border-radius: 10px; border-left: 4px solid {avg_color};">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 5px;">Average</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: {avg_color};">{format_inr(avg_pnl)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+
+
+
     
     # ===================================================================
     # 📋 OPEN POSITIONS
