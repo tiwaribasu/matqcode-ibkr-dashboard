@@ -716,7 +716,7 @@ def create_india_dashboard(data_dict, live_pnl_df):
             formatted_time = str(last_datetime)
         
         # Display the last updated time with a caption
-        st.caption(f"📊 Live P&L Last Updated: {formatted_time}")
+        st.caption(f"📊 Last Updated: {formatted_time}")
     else:
         # Fallback to the original timezone display if no live PnL data
         st.caption(f"Last updated: {get_time_with_timezone('INDIA')}")
