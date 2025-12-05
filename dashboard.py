@@ -1151,35 +1151,66 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# # ===================================================================
+# # 📊 Create Tabs
+# # ===================================================================
+
+# tab1, tab2 = st.tabs([
+#     "🌍 **GLOBAL DASHBOARD**", 
+#     "🇮🇳 **INDIA DASHBOARD**"
+# ])
+
+# with tab1:
+#     # Refresh button at top-right of Global dashboard
+#     gcol1, gcol2 = st.columns([5, 1])
+#     with gcol1:
+#         st.write("")  # Empty
+#     with gcol2:
+#         if st.button("🔄 Refresh", type="secondary", key="refresh_global"):
+#             st.cache_data.clear()
+#             st.rerun()
+    
+#     create_global_dashboard(df_global)
+
+# with tab2:
+#     # Refresh button at top-right of India dashboard
+#     icol1, icol2 = st.columns([5, 1])
+#     with icol1:
+#         st.write("")  # Empty
+#     with icol2:
+#         if st.button("🔄 Refresh", type="secondary", key="refresh_india"):
+#             st.cache_data.clear()
+#             st.rerun()
+    
+#     create_india_dashboard(india_data, live_pnl_data)
+
 # ===================================================================
-# 📊 Create Tabs
+# 📊 Create Tabs with Compact Refresh Button
 # ===================================================================
 
-tab1, tab2 = st.tabs([
-    "🌍 **GLOBAL DASHBOARD**", 
-    "🇮🇳 **INDIA DASHBOARD**"
-])
+# Create a container for the header area
+header_container = st.container()
 
-with tab1:
-    # Refresh button at top-right of Global dashboard
-    gcol1, gcol2 = st.columns([5, 1])
-    with gcol1:
-        st.write("")  # Empty
-    with gcol2:
-        if st.button("🔄 Refresh", type="secondary", key="refresh_global"):
+with header_container:
+    # Use columns to position tabs and button side by side
+    tab_col, btn_col = st.columns([8, 1])
+    
+    with tab_col:
+        tab1, tab2 = st.tabs([
+            "🌍 **GLOBAL DASHBOARD**", 
+            "🇮🇳 **INDIA DASHBOARD**"
+        ])
+    
+    with btn_col:
+        # Minimal spacing - just align with tabs
+        st.write("<br>", unsafe_allow_html=True)  # Small vertical align
+        if st.button("🔄", help="Refresh all data", type="secondary", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
-    
+
+# Now create the tab content
+with tab1:
     create_global_dashboard(df_global)
 
 with tab2:
-    # Refresh button at top-right of India dashboard
-    icol1, icol2 = st.columns([5, 1])
-    with icol1:
-        st.write("")  # Empty
-    with icol2:
-        if st.button("🔄 Refresh", type="secondary", key="refresh_india"):
-            st.cache_data.clear()
-            st.rerun()
-    
     create_india_dashboard(india_data, live_pnl_data)
