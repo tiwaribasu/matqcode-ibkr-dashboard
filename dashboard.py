@@ -1099,18 +1099,6 @@ def create_india_dashboard(data_dict, live_pnl_df):
 # 🏠 MAIN APP - SIMPLE AND CLEAN
 # ===================================================================
 
-# Add refresh button at the top
-col1, col2 = st.columns([6, 1])
-with col1:
-    st.title("📊 BITQCODE Dashboard")
-with col2:
-    if st.button("🔄 Refresh Data", type="secondary"):
-        # Clear all cached data
-        st.cache_data.clear()
-        st.rerun()
-
-st.divider()
-
 # Load data for all sheets using caching with TTL
 df_global_raw = load_sheet_data(sheet_gid="5320120")  # GLOBAL sheet
 df_india_raw = load_sheet_data(sheet_gid="649765105")  # INDIA sheet
@@ -1164,12 +1152,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================================================================
-# 📊 Create Tabs with Cleaner Layout
+# 📊 Create Tabs with Refresh Button
 # ===================================================================
-tab1, tab2 = st.tabs([
-    "🌍 **GLOBAL DASHBOARD**", 
-    "🇮🇳 **INDIA DASHBOARD**"
-])
+
+# Create columns for tabs and refresh button
+tab_col, refresh_col = st.columns([6, 1])
+
+with tab_col:
+    tab1, tab2 = st.tabs([
+        "🌍 **GLOBAL DASHBOARD**", 
+        "🇮🇳 **INDIA DASHBOARD**"
+    ])
+
+with refresh_col:
+    st.write("")  # Spacing
+    st.write("")  # Spacing
+    if st.button("🔄 Refresh", type="secondary", use_container_width=True):
+        # Clear all cached data
+        st.cache_data.clear()
+        st.rerun()
 
 with tab1:
     create_global_dashboard(df_global)
