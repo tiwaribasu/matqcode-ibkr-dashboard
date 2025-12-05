@@ -862,7 +862,7 @@ def create_india_dashboard(data_dict, live_pnl_df):
 
 
     # ===================================================================
-    # 📈 TODAY'S LIVE P&L CHART - ULTRA CLEAN
+    # 📈 TODAY'S LIVE P&L CHART - COLOR BY VALUE
     # ===================================================================
     if not live_pnl_df.empty:
         st.divider()
@@ -873,34 +873,62 @@ def create_india_dashboard(data_dict, live_pnl_df):
         # Create the chart
         fig = go.Figure()
         
-        # Determine line color based on latest P&L
-        latest_pnl = live_pnl_df['Total PnL'].iloc[-1] if len(live_pnl_df) > 0 else 0
-        line_color = '#10B981' if latest_pnl >= 0 else '#EF4444'  # Green/Red
+        # Create segments based on positive/negative values
+        # We need to split the line where it crosses zero
+        segments = []
+        current_segment = {'x': [], 'y': [], 'color': None}
         
-        # Add smooth line
+        for i in range(len(live_pnl_df)):
+            current_val = live_pnl_df['Total PnL'].iloc[i]
+            current_time = live_pnl_df['DateTime'].iloc[i]
+            current_color = '#10B981' if current_val >= 0 else '#EF4444'  # Green/Red
+            
+            if not current_segment['x']:
+                # First point
+                current_segment['x'].append(current_time)
+                current_segment['y'].append(current_val)
+                current_segment['color'] = current_color
+            elif current_segment['color'] == current_color:
+                # Same color, continue segment
+                current_segment['x'].append(current_time)
+                current_segment['y'].append(current_val)
+            else:
+                # Color changed, save current segment and start new one
+                segments.append(current_segment.copy())
+                current_segment = {
+                    'x': [current_time],
+                    'y': [current_val],
+                    'color': current_color
+                }
+        
+        # Add the last segment
+        if current_segment['x']:
+            segments.append(current_segment)
+        
+        # Add each segment as a separate trace
+        for segment in segments:
+            fig.add_trace(go.Scatter(
+                x=segment['x'],
+                y=segment['y'],
+                mode='lines',
+                line=dict(
+                    shape='spline',
+                    smoothing=1.0,
+                    width=3,
+                    color=segment['color']
+                ),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+        
+        # Add a single trace for hover information (invisible but provides hover)
         fig.add_trace(go.Scatter(
             x=live_pnl_df['DateTime'],
             y=live_pnl_df['Total PnL'],
             mode='lines',
-            name='Live P&L',
-            line=dict(
-                shape='spline',
-                smoothing=1.0,
-                width=3,
-                color=line_color
-            ),
-            hovertemplate='<b>%{x|%H:%M}</b><br>₹%{y:,.2f}<extra></extra>'
-        ))
-        
-        # Add subtle fill
-        fig.add_trace(go.Scatter(
-            x=live_pnl_df['DateTime'],
-            y=live_pnl_df['Total PnL'],
-            mode='none',
-            fill='tozeroy',
-            fillcolor=f'rgba({0 if latest_pnl >= 0 else 239}, {185 if latest_pnl >= 0 else 68}, {129 if latest_pnl >= 0 else 68}, 0.1)',
-            showlegend=False,
-            hoverinfo='skip'
+            line=dict(width=0),  # Invisible line
+            hovertemplate='<b>%{x|%H:%M}</b><br>₹%{y:,.2f}<extra></extra>',
+            showlegend=False
         ))
         
         # Add zero line
@@ -939,11 +967,6 @@ def create_india_dashboard(data_dict, live_pnl_df):
         
         # Display the chart
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Optional: Show just the latest value in a subtle way
-        if len(live_pnl_df) > 0:
-            latest_time = live_pnl_df['DateTime'].iloc[-1].strftime('%H:%M')
-            st.caption(f"Latest: {format_inr(latest_pnl)} at {latest_time}")
 
 
 
