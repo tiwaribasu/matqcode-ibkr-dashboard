@@ -887,11 +887,11 @@ def create_dashboard(data_dict, live_pnl_df, region="INDIA"):
 # 📥 Load & Clean Data — WITH AUTOMATIC REFRESH
 # ===================================================================
 
-# Load data for all sheets using caching with TTL
+# Load data for all sheets
 df_india_raw = load_sheet_data(sheet_gid="649765105")  # INDIA sheet
 df_india_live_pnl_raw = load_sheet_data(sheet_gid="1065660372")  # INDIA LIVE PnL sheet
 
-# NEW: Load Global sheets with same structure
+# Load Global sheets
 df_global_raw = load_sheet_data(sheet_gid="94252270")  # IB_GLOBAL sheet
 df_global_live_pnl_raw = load_sheet_data(sheet_gid="1297846329")  # IB_GLOBAL_LIVE_PnL sheet
 
@@ -899,9 +899,16 @@ df_global_live_pnl_raw = load_sheet_data(sheet_gid="1297846329")  # IB_GLOBAL_LI
 india_data = process_india_data(df_india_raw)
 india_live_pnl_data = process_live_pnl_data(df_india_live_pnl_raw)
 
-# NEW: Process Global data using same functions (since columns are same)
-global_data = process_india_data(df_global_raw)  # Same function works for Global
-global_live_pnl_data = process_live_pnl_data(df_global_live_pnl_raw)
+# Process Global data (if sheet loads successfully)
+if df_global_raw.empty:
+    global_data = {'open_positions': pd.DataFrame(), 'closed_positions': pd.DataFrame(), 'summary': {}}
+else:
+    global_data = process_india_data(df_global_raw)
+
+if df_global_live_pnl_raw.empty:
+    global_live_pnl_data = pd.DataFrame()
+else:
+    global_live_pnl_data = process_live_pnl_data(df_global_live_pnl_raw)
 
 # ===================================================================
 # 🎨 CSS for Bigger Tabs
