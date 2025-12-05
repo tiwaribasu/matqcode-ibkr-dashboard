@@ -1152,28 +1152,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===================================================================
-# 📊 Create Tabs with Refresh Button
+# 📊 Create Tabs
 # ===================================================================
 
-# Create columns for tabs and refresh button
-tab_col, refresh_col = st.columns([6, 1])
-
-with tab_col:
-    tab1, tab2 = st.tabs([
-        "🌍 **GLOBAL DASHBOARD**", 
-        "🇮🇳 **INDIA DASHBOARD**"
-    ])
-
-with refresh_col:
-    st.write("")  # Spacing
-    st.write("")  # Spacing
-    if st.button("🔄 Refresh", type="secondary", use_container_width=True):
-        # Clear all cached data
-        st.cache_data.clear()
-        st.rerun()
+tab1, tab2 = st.tabs([
+    "🌍 **GLOBAL DASHBOARD**", 
+    "🇮🇳 **INDIA DASHBOARD**"
+])
 
 with tab1:
+    # Refresh button at top-right of Global dashboard
+    gcol1, gcol2 = st.columns([5, 1])
+    with gcol1:
+        st.write("")  # Empty
+    with gcol2:
+        if st.button("🔄 Refresh Global", type="secondary", key="refresh_global"):
+            st.cache_data.clear()
+            st.rerun()
+    
     create_global_dashboard(df_global)
 
 with tab2:
+    # Refresh button at top-right of India dashboard
+    icol1, icol2 = st.columns([5, 1])
+    with icol1:
+        st.write("")  # Empty
+    with icol2:
+        if st.button("🔄 Refresh India", type="secondary", key="refresh_india"):
+            st.cache_data.clear()
+            st.rerun()
+    
     create_india_dashboard(india_data, live_pnl_data)
