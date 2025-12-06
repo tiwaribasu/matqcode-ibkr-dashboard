@@ -608,9 +608,7 @@ def create_dashboard(data_dict, live_pnl_df, region="INDIA"):
                 tickformat='%H:%M',
                 tickfont=dict(size=10, color='#64748B'),
                 linecolor='#E2E8F0',
-                showline=True,
-                range=[live_pnl_df_sorted['DateTime'].min(), live_pnl_df_sorted['DateTime'].max()]
-
+                showline=True
             ),
             yaxis=dict(
                 showgrid=True,
